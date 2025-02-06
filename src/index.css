@@ -1,11 +1,23 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./index.css"; // Ensure this line exists if using Tailwind or styles
+/* Reset default browser styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  text-align: center;
+  padding: 50px;
+}
+
+h1 {
+  color: #333;
+  font-size: 2rem;
+}
+
+p {
+  font-size: 1.2rem;
+  color: #555;
+}
