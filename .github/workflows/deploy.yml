@@ -1,6 +1,8 @@
 name: Install Dependencies & Deploy
 on: push
 jobs:
+name: Install Tailwind CSS
+  run: npm install tailwindcss
   build:
     runs-on: ubuntu-latest
     steps:
