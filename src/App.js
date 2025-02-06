@@ -9,9 +9,10 @@ const App = () => {
 
   // Calculate project progress based on weighted tasks
   const calculateProjectProgress = (tasks) => {
+    if (!tasks.length) return 0;
     const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
     const completedEffort = tasks.reduce((sum, task) => sum + (task.progress / 100) * task.effort, 0);
-    return totalEffort > 0 ? Math.round((completedEffort / totalEffort) * 100) : 0;
+    return Math.round((completedEffort / totalEffort) * 100);
   };
 
   return (
@@ -49,7 +50,7 @@ const App = () => {
         </div>
       </div>
 
-      {/* Selected Project Task List */}
+      {/* Selected Project Section */}
       {selectedProject && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow-lg">
           <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
@@ -67,13 +68,11 @@ const App = () => {
                     value={task.progress}
                     className="w-full mt-2"
                     onChange={(e) => {
-                      let updatedTasks = [...selectedProject.tasks];
-                      updatedTasks[index].progress = e.target.value;
-                      let updatedProject = { ...selectedProject, tasks: updatedTasks };
-                      let updatedProjects = projects.map((p) =>
-                        p.name === selectedProject.name ? updatedProject : p
+                      let updatedTasks = selectedProject.tasks.map((t, i) =>
+                        i === index ? { ...t, progress: parseInt(e.target.value) } : t
                       );
-                      setProjects(updatedProjects);
+                      let updatedProject = { ...selectedProject, tasks: updatedTasks };
+                      setProjects(projects.map((p) => (p.name === selectedProject.name ? updatedProject : p)));
                       setSelectedProject(updatedProject);
                     }}
                   />
@@ -87,19 +86,21 @@ const App = () => {
           <button
             onClick={() => {
               const newTask = { name: `Task ${selectedProject.tasks.length + 1}`, progress: 0, effort: 1 };
-              let updatedProject = {
-                ...selectedProject,
-                tasks: [...selectedProject.tasks, newTask],
-              };
-              let updatedProjects = projects.map((p) =>
-                p.name === selectedProject.name ? updatedProject : p
-              );
-              setProjects(updatedProjects);
+              let updatedProject = { ...selectedProject, tasks: [...selectedProject.tasks, newTask] };
+              setProjects(projects.map((p) => (p.name === selectedProject.name ? updatedProject : p)));
               setSelectedProject(updatedProject);
             }}
             className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
           >
             + Add Task
+          </button>
+
+          {/* Close Button */}
+          <button
+            className="mt-4 ml-4 bg-red-500 text-white py-2 px-4 rounded"
+            onClick={() => setSelectedProject(null)}
+          >
+            Close
           </button>
         </div>
       )}
