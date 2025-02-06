@@ -6,6 +6,8 @@ const App = () => {
     { name: "Project B", tasks: [{ name: "Task 2", progress: 70, effort: 3 }] },
   ]);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
 
   // Calculate project progress based on weighted tasks
   const calculateProjectProgress = (tasks) => {
@@ -13,6 +15,28 @@ const App = () => {
     const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
     const completedEffort = tasks.reduce((sum, task) => sum + (task.progress / 100) * task.effort, 0);
     return Math.round((completedEffort / totalEffort) * 100);
+  };
+
+  // Update project name
+  const updateProjectName = (index, newName) => {
+    let updatedProjects = [...projects];
+    updatedProjects[index].name = newName;
+    setProjects(updatedProjects);
+    setEditingProject(null);
+  };
+
+  // Update task name
+  const updateTaskName = (taskIndex, newName) => {
+    let updatedTasks = selectedProject.tasks.map((task, i) =>
+      i === taskIndex ? { ...task, name: newName } : task
+    );
+    let updatedProject = { ...selectedProject, tasks: updatedTasks };
+    let updatedProjects = projects.map((p) =>
+      p.name === selectedProject.name ? updatedProject : p
+    );
+    setProjects(updatedProjects);
+    setSelectedProject(updatedProject);
+    setEditingTask(null);
   };
 
   return (
@@ -27,14 +51,34 @@ const App = () => {
             className="bg-white p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition"
             onClick={() => setSelectedProject(project)}
           >
-            <h2 className="text-xl font-semibold">{project.name}</h2>
+            {editingProject === index ? (
+              <input
+                type="text"
+                defaultValue={project.name}
+                autoFocus
+                className="w-full border p-2 rounded"
+                onBlur={(e) => updateProjectName(index, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") updateProjectName(index, e.target.value);
+                }}
+              />
+            ) : (
+              <h2
+                className="text-xl font-semibold"
+                onDoubleClick={() => setEditingProject(index)}
+              >
+                {project.name}
+              </h2>
+            )}
             <div className="w-full bg-gray-200 h-3 rounded mt-2">
               <div
                 className="bg-blue-500 h-3 rounded"
                 style={{ width: `${calculateProjectProgress(project.tasks)}%` }}
               ></div>
             </div>
-            <p className="text-sm text-gray-600 mt-1">{calculateProjectProgress(project.tasks)}% Complete</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {calculateProjectProgress(project.tasks)}% Complete
+            </p>
           </div>
         ))}
 
@@ -60,7 +104,25 @@ const App = () => {
             ) : (
               selectedProject.tasks.map((task, index) => (
                 <div key={index} className="bg-gray-100 p-4 my-2 rounded">
-                  <h3 className="text-lg font-semibold">{task.name}</h3>
+                  {editingTask === index ? (
+                    <input
+                      type="text"
+                      defaultValue={task.name}
+                      autoFocus
+                      className="w-full border p-2 rounded"
+                      onBlur={(e) => updateTaskName(index, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") updateTaskName(index, e.target.value);
+                      }}
+                    />
+                  ) : (
+                    <h3
+                      className="text-lg font-semibold"
+                      onDoubleClick={() => setEditingTask(index)}
+                    >
+                      {task.name}
+                    </h3>
+                  )}
                   <input
                     type="range"
                     min="0"
