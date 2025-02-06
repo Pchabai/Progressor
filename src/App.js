@@ -17,6 +17,7 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-red-300 p-10">
+    {console.log("Projects:", projects)}
       <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
 
       {/* Grid Layout for Projects */}
