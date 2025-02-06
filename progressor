@@ -1,0 +1,68 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+export default function TodoApp() {
+  const [projects, setProjects] = useState([]);
+
+  const addProject = () => {
+    const name = prompt("Enter project name:");
+    if (name) {
+      setProjects([...projects, { name, tasks: [] }]);
+    }
+  };
+
+  const addTask = (projectIndex) => {
+    const name = prompt("Enter task name:");
+    const effort = parseInt(prompt("Enter task effort (in hours):"), 10);
+    if (name && effort > 0) {
+      const updatedProjects = [...projects];
+      updatedProjects[projectIndex].tasks.push({ name, effort, progress: 0 });
+      setProjects(updatedProjects);
+    }
+  };
+
+  const updateTaskProgress = (projectIndex, taskIndex, newProgress) => {
+    const updatedProjects = [...projects];
+    updatedProjects[projectIndex].tasks[taskIndex].progress = newProgress;
+    setProjects(updatedProjects);
+  };
+
+  const calculateProjectProgress = (tasks) => {
+    const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
+    const completedEffort = tasks.reduce(
+      (sum, task) => sum + (task.progress / 100) * task.effort,
+      0
+    );
+    return totalEffort > 0 ? Math.round((completedEffort / totalEffort) * 100) : 0;
+  };
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto">
+      <Button onClick={addProject} className="mb-4">Add Project</Button>
+      {projects.map((project, projectIndex) => (
+        <Card key={projectIndex} className="mb-6 p-4">
+          <h2 className="text-xl font-bold">{project.name}</h2>
+          <Progress value={calculateProjectProgress(project.tasks)} className="mt-2" />
+          <Button onClick={() => addTask(projectIndex)} className="mt-2">Add Task</Button>
+          {project.tasks.map((task, taskIndex) => (
+            <CardContent key={taskIndex} className="mt-4 p-2 border rounded">
+              <h3 className="font-semibold">{task.name} ({task.effort} hrs)</h3>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={task.progress}
+                onChange={(e) => updateTaskProgress(projectIndex, taskIndex, parseInt(e.target.value))}
+                className="w-full mt-2"
+              />
+              <p className="text-sm">{task.progress}% complete</p>
+            </CardContent>
+          ))}
+        </Card>
+      ))}
+    </div>
+  );
+}
