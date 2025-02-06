@@ -27,47 +27,7 @@ const App = () => {
 
   // Update task name
   const updateTaskName = (taskIndex, newName) => {
-    let updatedTasks = selectedProject.tasks.map((selectedProject.tasks.map((task, index) => (
-  <div
-    key={index}
-    className={`bg-gray-100 p-4 my-2 rounded transition-all ${
-      task.progress === 100 ? "animate-fade-out" : ""
-    }`}
-  >
-    {editingTask === index ? (
-      <input
-        type="text"
-        defaultValue={task.name}
-        autoFocus
-        className="w-full border p-2 rounded"
-        onBlur={(e) => updateTaskName(index, e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") updateTaskName(index, e.target.value);
-        }}
-      />
-    ) : (
-      <h3 className="text-lg font-semibold" onDoubleClick={() => setEditingTask(index)}>
-        {task.name}
-      </h3>
-    )}
-    <input
-      type="range"
-      min="0"
-      max="100"
-      value={task.progress}
-      className="w-full mt-2"
-      onChange={(e) => {
-        let updatedTasks = selectedProject.tasks.map((t, i) =>
-          i === index ? { ...t, progress: parseInt(e.target.value) } : t
-        );
-        let updatedProject = { ...selectedProject, tasks: updatedTasks };
-        setProjects(projects.map((p) => (p.name === selectedProject.name ? updatedProject : p)));
-        setSelectedProject(updatedProject);
-      }}
-    />
-    <p className="text-sm">{task.progress}% Complete</p>
-  </div>
-))) =>
+    let updatedTasks = selectedProject.tasks.map((task, i) =>
       i === taskIndex ? { ...task, name: newName } : task
     );
     let updatedProject = { ...selectedProject, tasks: updatedTasks };
@@ -88,7 +48,9 @@ const App = () => {
         {projects.map((project, index) => (
           <div
             key={index}
-            className="bg-white p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition"
+            className={`bg-white p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105 ${
+              calculateProjectProgress(project.tasks) === 100 ? "animate-pulse" : ""
+            }`}
             onClick={() => setSelectedProject(project)}
           >
             {editingProject === index ? (
@@ -103,10 +65,7 @@ const App = () => {
                 }}
               />
             ) : (
-              <h2
-                className="text-xl font-semibold"
-                onDoubleClick={() => setEditingProject(index)}
-              >
+              <h2 className="text-xl font-semibold" onDoubleClick={() => setEditingProject(index)}>
                 {project.name}
               </h2>
             )}
@@ -143,7 +102,12 @@ const App = () => {
               <p>No tasks yet.</p>
             ) : (
               selectedProject.tasks.map((task, index) => (
-                <div key={index} className="bg-gray-100 p-4 my-2 rounded">
+                <div
+                  key={index}
+                  className={`bg-gray-100 p-4 my-2 rounded transition-all ${
+                    task.progress === 100 ? "animate-fade-out" : ""
+                  }`}
+                >
                   {editingTask === index ? (
                     <input
                       type="text"
@@ -156,10 +120,7 @@ const App = () => {
                       }}
                     />
                   ) : (
-                    <h3
-                      className="text-lg font-semibold"
-                      onDoubleClick={() => setEditingTask(index)}
-                    >
+                    <h3 className="text-lg font-semibold" onDoubleClick={() => setEditingTask(index)}>
                       {task.name}
                     </h3>
                   )}
