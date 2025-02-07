@@ -128,13 +128,26 @@ const App = () => {
 
   // Add a new project
   const handleAddProject = async () => {
-    if (!user) return alert("You must be logged in to create a project!");
+  if (!user) {
+    alert("You must be logged in to create a project!");
+    return;
+  }
 
-    const newProject = {
-      name: `Project ${projects.length + 1}`,
-      tasks: [],
-      userId: user.uid,
-    };
+  const newProject = {
+    name: `Project ${projects.length + 1}`,
+    tasks: [],
+    userId: user.uid, // ✅ Ensure userId is stored
+  };
+
+  try {
+    console.log("Adding project..."); // Debugging
+    const docRef = await addDoc(collection(db, "projects"), newProject);
+    console.log("Project added with ID:", docRef.id); // Debugging
+    setProjects(prevProjects => [...prevProjects, { id: docRef.id, ...newProject }]);
+  } catch (error) {
+    console.error("Error adding project:", error);
+  }
+};
 
     const docRef = await addDoc(collection(db, "projects"), newProject);
     setProjects([...projects, { id: docRef.id, ...newProject }]);
