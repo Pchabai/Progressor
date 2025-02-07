@@ -40,3 +40,10 @@ body {
 .font-retro {
   font-family: "Press Start 2P", cursive;
 }
+.theme-icon {
+  transition: transform 0.2s ease-in-out;
+}
+
+.theme-icon:hover {
+  transform: scale(1.1);
+}
