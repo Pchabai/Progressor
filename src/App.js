@@ -10,6 +10,7 @@ import {
   createUserWithEmailAndPassword 
 } from "firebase/auth";
 import { collection, getDocs, addDoc, updateDoc, doc, query, where } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 const App = () => {
   const [projects, setProjects] = useState([]);
@@ -23,15 +24,25 @@ const App = () => {
 
   // Enable persistent login
   useEffect(() => {
-    const enablePersistence = async () => {
-      try {
-        await setPersistence(auth, browserLocalPersistence);
-      } catch (error) {
-        console.error("Error enabling persistence:", error);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      
+      if (currentUser) {
+        fetchProjects(currentUser.uid);
+  
+        // Load user settings from Firestore
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        if (userDoc.exists()) {
+          setTheme(userDoc.data().theme || "light");
+        }
+      } else {
+        setProjects([]);
+        setTheme("light"); // Reset theme if no user is logged in
       }
-    };
-
-    enablePersistence();
+    });
+  
+    return () => unsubscribe();
+  }, []);
 
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -97,8 +108,17 @@ const App = () => {
   };
 
   // Toggle Theme
-  const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === "light" ? "dark" : prevTheme === "dark" ? "retro" : "light"));
+  const toggleTheme = async () => {
+    if (!user) return; // Ensure a user is logged in
+    
+    const newTheme = theme === "light" ? "dark" : theme === "dark" ? "retro" : "light";
+    setTheme(newTheme);
+  
+    try {
+      await setDoc(doc(db, "users", user.uid), { theme: newTheme }, { merge: true });
+    } catch (error) {
+      console.error("Error saving theme preference:", error);
+    }
   };
 
   return (
