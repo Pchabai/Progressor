@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SunIcon, MoonIcon, ComputerDesktopIcon } from "@heroicons/react/24/solid";
 
 const App = () => {
   const [projects, setProjects] = useState([
