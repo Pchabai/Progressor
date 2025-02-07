@@ -75,6 +75,7 @@ const App = () => {
     try {
       console.log("Fetching projects...");
       const querySnapshot = await getDocs(query(collection(db, "projects"), where("userId", "==", userId)));
+
       if (!querySnapshot.empty) {
         const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setProjects(projectsList);
@@ -167,7 +168,7 @@ const App = () => {
 
     try {
       const projectRef = doc(db, "projects", selectedProject.id);
-      const updatedTasks = [...selectedProject.tasks, newTask];
+      const updatedTasks = [...(selectedProject.tasks || []), newTask];
 
       await updateDoc(projectRef, { tasks: updatedTasks });
 
