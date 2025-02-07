@@ -164,33 +164,6 @@ const App = () => {
     }
   };
 
-  // Add a new task inside the selected project
-  const handleAddTask = async () => {
-    if (!selectedProject) return;
-
-    const newTask = {
-      name: `Task ${selectedProject.tasks.length + 1}`,
-      progress: 0,
-      effort: 1,
-    };
-
-    try {
-      const projectRef = doc(db, "projects", selectedProject.id);
-      const updatedTasks = [...selectedProject.tasks, newTask];
-
-      await updateDoc(projectRef, { tasks: updatedTasks });
-
-      setProjects(prevProjects =>
-        prevProjects.map(p =>
-          p.id === selectedProject.id ? { ...p, tasks: updatedTasks } : p
-        )
-      );
-      setSelectedProject(prev => ({ ...prev, tasks: updatedTasks }));
-    } catch (error) {
-      console.error("Error adding task:", error);
-    }
-  };
-
   return (
     <div className={`min-h-screen p-10 transition-all ${theme === "dark" ? "bg-gray-900 text-white" : theme === "retro" ? "bg-gray-300 text-black font-retro" : "bg-gray-100 text-black"}`}>
       {/* Theme Toggle Button */}
@@ -218,7 +191,17 @@ const App = () => {
           </button>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {projects.map((project, index) => (
-              <input key={index} type="text" className="text-xl font-semibold border-none bg-transparent w-full focus:outline-none" value={project.name} onChange={(e) => handleEditProjectName(project.id, e.target.value)} />
+              <div key={index} className="p-5 bg-white shadow-md rounded-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105" onClick={() => setSelectedProject(project)}>
+                <input
+                  type="text"
+                  className="text-xl font-semibold border-none bg-transparent w-full focus:outline-none"
+                  value={project.name}
+                  onChange={(e) => handleEditProjectName(project.id, e.target.value)}
+                />
+                <div className="w-full bg-gray-200 h-3 rounded mt-2">
+                  <div className="bg-blue-500 h-3 rounded" style={{ width: `${project.progress || 0}%` }}></div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
