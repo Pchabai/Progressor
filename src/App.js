@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { auth, googleProvider, db } from "./firebaseConfig";
-import { signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged, 
+  setPersistence, 
+  browserLocalPersistence, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword 
+} from "firebase/auth";
 import { collection, getDocs, addDoc, updateDoc, doc, query, where } from "firebase/firestore";
 
 const App = () => {
@@ -9,6 +17,9 @@ const App = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [theme, setTheme] = useState("light"); // Light, Dark, Retro
   const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false); // Toggle between login & signup
 
   // Enable persistent login
   useEffect(() => {
@@ -42,6 +53,27 @@ const App = () => {
     setProjects(projectsList);
   };
 
+  // Email/Password Authentication
+  const handleRegister = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setEmail("");
+      setPassword("");
+    } catch (error) {
+      console.error("Registration Error:", error.message);
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      setEmail("");
+      setPassword("");
+    } catch (error) {
+      console.error("Login Error:", error.message);
+    }
+  };
+
   // Google Sign-In
   const handleGoogleLogin = async () => {
     try {
@@ -69,18 +101,6 @@ const App = () => {
     setTheme(prevTheme => (prevTheme === "light" ? "dark" : prevTheme === "dark" ? "retro" : "light"));
   };
 
-  // Update task notes
-  const updateTaskNotes = async (projectId, taskIndex, newNotes) => {
-    const projectRef = doc(db, "projects", projectId);
-    const updatedProjects = projects.map((p) =>
-      p.id === projectId
-        ? { ...p, tasks: p.tasks.map((task, i) => (i === taskIndex ? { ...task, notes: newNotes } : task)) }
-        : p
-    );
-    setProjects(updatedProjects);
-    await updateDoc(projectRef, { tasks: updatedProjects.find(p => p.id === projectId).tasks });
-  };
-
   return (
     <div className={`min-h-screen p-10 transition-all ${theme === "dark" ? "bg-gray-900 text-white" : theme === "retro" ? "bg-gray-300 text-black font-retro" : "bg-gray-100 text-black"}`}>
       {/* Theme Toggle Button */}
@@ -88,23 +108,61 @@ const App = () => {
         {theme === "light" ? "🌙 Dark Mode" : theme === "dark" ? "🖥️ Retro Mode" : "☀️ Light Mode"}
       </button>
 
-      {/* Authentication Buttons */}
-      <div className="absolute top-4 left-4">
-        {!user ? (
-          <button onClick={handleGoogleLogin} className="bg-blue-500 text-white px-4 py-2 rounded">
-            Sign in with Google
-          </button>
-        ) : (
-          <div>
-            <p>Welcome, {user.displayName}!</p>
-            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded ml-2">
-              Logout
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Authentication Section */}
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="bg-white p-6 shadow-md rounded text-center">
+          {!user ? (
+            <>
+              <h2 className="text-lg font-bold">{isRegistering ? "Register" : "Login"}</h2>
 
-      <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="border p-2 rounded w-full mt-2"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="border p-2 rounded w-full mt-2"
+              />
+
+              <button
+                onClick={isRegistering ? handleRegister : handleEmailLogin}
+                className="bg-blue-500 text-white px-4 py-2 rounded mt-2 w-full"
+              >
+                {isRegistering ? "Register" : "Login"}
+              </button>
+
+              <button
+                onClick={() => setIsRegistering(!isRegistering)}
+                className="text-blue-500 text-sm mt-2"
+              >
+                {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
+              </button>
+
+              <hr className="my-3" />
+
+              <button
+                onClick={handleGoogleLogin}
+                className="bg-red-500 text-white px-4 py-2 rounded w-full"
+              >
+                Sign in with Google
+              </button>
+            </>
+          ) : (
+            <div>
+              <p>Welcome, {user.email}!</p>
+              <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Grid Layout for Projects */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -120,54 +178,7 @@ const App = () => {
             </div>
           </div>
         ))}
-
-        {/* Add Project Tile */}
-        {user && (
-          <div
-            className="bg-green-500 text-white p-5 rounded-lg shadow-lg cursor-pointer flex justify-center items-center hover:bg-green-600 transition"
-            onClick={async () => {
-              const newProject = { name: `Project ${projects.length + 1}`, tasks: [], userId: user.uid };
-              const docRef = await addDoc(collection(db, "projects"), newProject);
-              setProjects([...projects, { id: docRef.id, ...newProject }]);
-            }}
-          >
-            <span className="text-xl font-semibold">+ Add Project</span>
-          </div>
-        )}
       </div>
-
-      {/* Selected Project Section */}
-      {selectedProject && (
-        <div className={`mt-8 p-6 rounded-lg shadow-lg`}>
-          <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
-          <div className="mt-4">
-            {selectedProject.tasks.length === 0 ? (
-              <p>No tasks yet.</p>
-            ) : (
-              selectedProject.tasks.map((task, index) => (
-                <div key={index} className={`p-4 my-2 rounded transition-all`}>
-                  <h3 className="text-lg font-semibold">{task.name}</h3>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={task.progress}
-                    className="w-full mt-2"
-                    onChange={(e) => updateTaskNotes(selectedProject.id, index, parseInt(e.target.value))}
-                  />
-                  <p className="text-sm">{task.progress}% Complete</p>
-                  <textarea
-                    className="w-full mt-2 p-2 border rounded"
-                    placeholder="Add notes for this task..."
-                    value={task.notes}
-                    onChange={(e) => updateTaskNotes(selectedProject.id, index, e.target.value)}
-                  ></textarea>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

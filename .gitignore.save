@@ -1,0 +1,10 @@
+<<<<<<< HEAD
+touch .gitignore
+src/firebaseConfig.js
+=======
+node_modules
+node_modules
+src/firebaseConfig.js
+>>>>>>> 7aeb452 (Merged authentication with themes & task updates)
+node_modules/
+src/firebaseConfig.j
