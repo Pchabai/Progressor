@@ -47,16 +47,31 @@ const App = () => {
       }`}
     >
       {/* Theme Toggle Button */}
-      <button
-        className={`absolute top-4 right-4 py-2 px-4 rounded ${
-          theme === "retro"
-            ? "bg-gray-700 text-white border-2 border-black"
-            : "bg-gray-800 text-white dark:bg-gray-200 dark:text-black"
-        }`}
-        onClick={toggleTheme}
-      >
-        {theme === "light" ? "🌙 Dark Mode" : theme === "dark" ? "🖥️ Retro Mode" : "☀️ Light Mode"}
-      </button>
+     <button
+  className={`absolute top-4 right-4 p-2 rounded flex items-center space-x-2 transition ${
+    theme === "retro"
+      ? "bg-gray-700 text-white border-2 border-black"
+      : "bg-gray-800 text-white dark:bg-gray-200 dark:text-black"
+  }`}
+  onClick={toggleTheme}
+>
+  {theme === "light" ? (
+    <>
+      <MoonIcon className="w-6 h-6 text-white dark:text-black" />
+      <span className="hidden sm:inline">Dark Mode</span>
+    </>
+  ) : theme === "dark" ? (
+    <>
+      <ComputerDesktopIcon className="w-6 h-6 text-white dark:text-black" />
+      <span className="hidden sm:inline">Retro Mode</span>
+    </>
+  ) : (
+    <>
+      <SunIcon className="w-6 h-6 text-white dark:text-black" />
+      <span className="hidden sm:inline">Light Mode</span>
+    </>
+  )}
+</button>
 
       <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
 
