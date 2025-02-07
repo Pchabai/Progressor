@@ -7,6 +7,12 @@ const App = () => {
   ]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Toggle dark mode
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+  };
 
   // Calculate project progress based on weighted tasks
   const calculateProjectProgress = (tasks) => {
@@ -14,20 +20,6 @@ const App = () => {
     const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
     const completedEffort = tasks.reduce((sum, task) => sum + (task.progress / 100) * task.effort, 0);
     return Math.round((completedEffort / totalEffort) * 100);
-  };
-
-  // Update task name
-  const updateTaskName = (taskIndex, newName) => {
-    let updatedTasks = selectedProject.tasks.map((task, i) =>
-      i === taskIndex ? { ...task, name: newName } : task
-    );
-    let updatedProject = { ...selectedProject, tasks: updatedTasks };
-    let updatedProjects = projects.map((p) =>
-      p.name === selectedProject.name ? updatedProject : p
-    );
-    setProjects(updatedProjects);
-    setSelectedProject(updatedProject);
-    setEditingTask(null);
   };
 
   // Update task notes
@@ -44,7 +36,15 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
+    <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-black"} min-h-screen p-10 transition-all`}>
+      {/* Theme Toggle Button */}
+      <button
+        className="absolute top-4 right-4 bg-gray-800 text-white dark:bg-gray-200 dark:text-black py-2 px-4 rounded"
+        onClick={toggleTheme}
+      >
+        {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+      </button>
+
       <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
 
       {/* Grid Layout for Projects */}
@@ -52,9 +52,9 @@ const App = () => {
         {projects.map((project, index) => (
           <div
             key={index}
-            className={`bg-white p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105 ${
+            className={`p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105 ${
               calculateProjectProgress(project.tasks) === 100 ? "animate-pulse" : ""
-            }`}
+            } ${darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}`}
             onClick={() => setSelectedProject(project)}
           >
             <h2 className="text-xl font-semibold">{project.name}</h2>
@@ -64,9 +64,7 @@ const App = () => {
                 style={{ width: `${calculateProjectProgress(project.tasks)}%` }}
               ></div>
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              {calculateProjectProgress(project.tasks)}% Complete
-            </p>
+            <p className="text-sm mt-1">{calculateProjectProgress(project.tasks)}% Complete</p>
           </div>
         ))}
 
@@ -84,33 +82,15 @@ const App = () => {
 
       {/* Selected Project Section */}
       {selectedProject && (
-        <div className="mt-8 bg-white p-6 rounded-lg shadow-lg">
+        <div className={`mt-8 p-6 rounded-lg shadow-lg ${darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}`}>
           <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
           <div className="mt-4">
             {selectedProject.tasks.length === 0 ? (
               <p>No tasks yet.</p>
             ) : (
               selectedProject.tasks.map((task, index) => (
-                <div key={index} className="bg-gray-100 p-4 my-2 rounded transition-all">
-                  {editingTask === index ? (
-                    <input
-                      type="text"
-                      defaultValue={task.name}
-                      autoFocus
-                      className="w-full border p-2 rounded"
-                      onBlur={(e) => updateTaskName(index, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") updateTaskName(index, e.target.value);
-                      }}
-                    />
-                  ) : (
-                    <h3
-                      className="text-lg font-semibold"
-                      onDoubleClick={() => setEditingTask(index)}
-                    >
-                      {task.name}
-                    </h3>
-                  )}
+                <div key={index} className={`p-4 my-2 rounded transition-all ${darkMode ? "bg-gray-700" : "bg-gray-100"}`}>
+                  <h3 className="text-lg font-semibold">{task.name}</h3>
                   <input
                     type="range"
                     min="0"
