@@ -148,19 +148,30 @@ const App = () => {
     }
   };
 
-  // Edit Project Name
-  const handleEditProjectName = async (projectId, newName) => {
-    if (!user) return;
+  // Add a new task inside the selected project
+  const handleAddTask = async () => {
+    if (!selectedProject) return;
+
+    const newTask = {
+      name: `Task ${selectedProject.tasks.length + 1}`,
+      progress: 0,
+      effort: 1,
+    };
 
     try {
-      const projectRef = doc(db, "projects", projectId);
-      await updateDoc(projectRef, { name: newName });
+      const projectRef = doc(db, "projects", selectedProject.id);
+      const updatedTasks = [...selectedProject.tasks, newTask];
+
+      await updateDoc(projectRef, { tasks: updatedTasks });
 
       setProjects(prevProjects =>
-        prevProjects.map(p => (p.id === projectId ? { ...p, name: newName } : p))
+        prevProjects.map(p =>
+          p.id === selectedProject.id ? { ...p, tasks: updatedTasks } : p
+        )
       );
+      setSelectedProject(prev => ({ ...prev, tasks: updatedTasks }));
     } catch (error) {
-      console.error("Error updating project name:", error);
+      console.error("Error adding task:", error);
     }
   };
 
@@ -181,29 +192,27 @@ const App = () => {
             <button onClick={isRegistering ? handleRegister : handleEmailLogin} className="bg-blue-500 text-white px-4 py-2 rounded mt-2 w-full">
               {isRegistering ? "Register" : "Login"}
             </button>
+            <button onClick={() => setIsRegistering(!isRegistering)} className="text-blue-500 mt-2">
+              {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
+            </button>
+            <hr className="my-3" />
+            <button onClick={handleGoogleLogin} className="bg-red-500 text-white px-4 py-2 rounded w-full">
+              Sign in with Google
+            </button>
           </div>
         </div>
       ) : (
         <div>
           <h1 className="text-3xl font-bold text-center mb-6">Progressor Dashboard</h1>
-          <button className="bg-green-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddProject}>
-            + Add Project
-          </button>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
-              <div key={index} className="p-5 bg-white shadow-md rounded-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105" onClick={() => setSelectedProject(project)}>
-                <input
-                  type="text"
-                  className="text-xl font-semibold border-none bg-transparent w-full focus:outline-none"
-                  value={project.name}
-                  onChange={(e) => handleEditProjectName(project.id, e.target.value)}
-                />
-                <div className="w-full bg-gray-200 h-3 rounded mt-2">
-                  <div className="bg-blue-500 h-3 rounded" style={{ width: `${project.progress || 0}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {selectedProject ? (
+            <button className="bg-blue-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddTask}>
+              + Add Task
+            </button>
+          ) : (
+            <button className="bg-green-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddProject}>
+              + Add Project
+            </button>
+          )}
         </div>
       )}
     </div>
