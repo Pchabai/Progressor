@@ -1,77 +1,108 @@
-import React, { useState } from "react";
-import { SunIcon, MoonIcon, ComputerDesktopIcon } from "@heroicons/react/24/solid";
+import { useState, useEffect } from "react";
+import { auth, googleProvider, db } from "./firebaseConfig";
+import { signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { collection, getDocs, addDoc, updateDoc, doc, query, where } from "firebase/firestore";
 
 const App = () => {
-  const [projects, setProjects] = useState([
-    { name: "Project A", tasks: [{ name: "Task 1", progress: 30, effort: 5, notes: "" }] },
-    { name: "Project B", tasks: [{ name: "Task 2", progress: 70, effort: 3, notes: "" }] },
-  ]);
+  const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
-  const [theme, setTheme] = useState("light"); // Options: "light", "dark", "retro"
+  const [theme, setTheme] = useState("light"); // Light, Dark, Retro
+  const [user, setUser] = useState(null);
 
-  // Toggle between themes
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : prevTheme === "dark" ? "retro" : "light"));
+  // Enable persistent login
+  useEffect(() => {
+    const enablePersistence = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (error) {
+        console.error("Error enabling persistence:", error);
+      }
+    };
+
+    enablePersistence();
+
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProjects(currentUser.uid);
+      } else {
+        setProjects([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch projects for the logged-in user
+  const fetchProjects = async (userId) => {
+    const querySnapshot = await getDocs(query(collection(db, "projects"), where("userId", "==", userId)));
+    const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setProjects(projectsList);
   };
 
-  // Calculate project progress
-  const calculateProjectProgress = (tasks) => {
-    if (!tasks.length) return 0;
-    const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
-    const completedEffort = tasks.reduce((sum, task) => sum + (task.progress / 100) * task.effort, 0);
-    return Math.round((completedEffort / totalEffort) * 100);
+  // Google Sign-In
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      setUser(result.user);
+      fetchProjects(result.user.uid);
+    } catch (error) {
+      console.error("Google Login Error", error);
+    }
+  };
+
+  // Logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      setProjects([]);
+    } catch (error) {
+      console.error("Logout Error", error);
+    }
+  };
+
+  // Toggle Theme
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === "light" ? "dark" : prevTheme === "dark" ? "retro" : "light"));
   };
 
   // Update task notes
-  const updateTaskNotes = (taskIndex, newNotes) => {
-    let updatedTasks = selectedProject.tasks.map((task, i) =>
-      i === taskIndex ? { ...task, notes: newNotes } : task
-    );
-    let updatedProject = { ...selectedProject, tasks: updatedTasks };
-    let updatedProjects = projects.map((p) =>
-      p.name === selectedProject.name ? updatedProject : p
+  const updateTaskNotes = async (projectId, taskIndex, newNotes) => {
+    const projectRef = doc(db, "projects", projectId);
+    const updatedProjects = projects.map((p) =>
+      p.id === projectId
+        ? { ...p, tasks: p.tasks.map((task, i) => (i === taskIndex ? { ...task, notes: newNotes } : task)) }
+        : p
     );
     setProjects(updatedProjects);
-    setSelectedProject(updatedProject);
+    await updateDoc(projectRef, { tasks: updatedProjects.find(p => p.id === projectId).tasks });
   };
 
   return (
-    <div
-      className={`min-h-screen p-10 transition-all ${
-        theme === "dark"
-          ? "bg-gray-900 text-white"
-          : theme === "retro"
-          ? "bg-gray-300 text-black font-retro"
-          : "bg-gray-100 text-black"
-      }`}
-    >
+    <div className={`min-h-screen p-10 transition-all ${theme === "dark" ? "bg-gray-900 text-white" : theme === "retro" ? "bg-gray-300 text-black font-retro" : "bg-gray-100 text-black"}`}>
       {/* Theme Toggle Button */}
-     <button
-  className={`absolute top-4 right-4 p-2 rounded flex items-center space-x-2 transition ${
-    theme === "retro"
-      ? "bg-gray-700 text-white border-2 border-black"
-      : "bg-gray-800 text-white dark:bg-gray-200 dark:text-black"
-  }`}
-  onClick={toggleTheme}
->
-  {theme === "light" ? (
-    <>
-      <MoonIcon className="w-6 h-6 text-white dark:text-black" />
-      <span className="hidden sm:inline">Dark Mode</span>
-    </>
-  ) : theme === "dark" ? (
-    <>
-      <ComputerDesktopIcon className="w-6 h-6 text-white dark:text-black" />
-      <span className="hidden sm:inline">Retro Mode</span>
-    </>
-  ) : (
-    <>
-      <SunIcon className="w-6 h-6 text-white dark:text-black" />
-      <span className="hidden sm:inline">Light Mode</span>
-    </>
-  )}
-</button>
+      <button className={`absolute top-4 right-4 p-2 rounded flex items-center space-x-2 transition`} onClick={toggleTheme}>
+        {theme === "light" ? "🌙 Dark Mode" : theme === "dark" ? "🖥️ Retro Mode" : "☀️ Light Mode"}
+      </button>
+
+      {/* Authentication Buttons */}
+      <div className="absolute top-4 left-4">
+        {!user ? (
+          <button onClick={handleGoogleLogin} className="bg-blue-500 text-white px-4 py-2 rounded">
+            Sign in with Google
+          </button>
+        ) : (
+          <div>
+            <p>Welcome, {user.displayName}!</p>
+            <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded ml-2">
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
 
       <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
 
@@ -80,54 +111,41 @@ const App = () => {
         {projects.map((project, index) => (
           <div
             key={index}
-            className={`p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105 ${
-              calculateProjectProgress(project.tasks) === 100 ? "animate-pulse" : ""
-            } ${
-              theme === "retro"
-                ? "bg-gray-100 border-2 border-black text-black shadow-md font-retro"
-                : theme === "dark"
-                ? "bg-gray-800 text-white"
-                : "bg-white text-black"
-            }`}
+            className={`p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105`}
             onClick={() => setSelectedProject(project)}
           >
             <h2 className="text-xl font-semibold">{project.name}</h2>
             <div className="w-full bg-gray-200 h-3 rounded mt-2">
-              <div
-                className="bg-blue-500 h-3 rounded"
-                style={{ width: `${calculateProjectProgress(project.tasks)}%` }}
-              ></div>
+              <div className="bg-blue-500 h-3 rounded" style={{ width: `${project.progress || 0}%` }}></div>
             </div>
-            <p className="text-sm mt-1">{calculateProjectProgress(project.tasks)}% Complete</p>
           </div>
         ))}
 
         {/* Add Project Tile */}
-        <div
-          className="bg-green-500 text-white p-5 rounded-lg shadow-lg cursor-pointer flex justify-center items-center hover:bg-green-600 transition"
-          onClick={() => {
-            const newProject = { name: `Project ${projects.length + 1}`, tasks: [] };
-            setProjects([...projects, newProject]);
-          }}
-        >
-          <span className="text-xl font-semibold">+ Add Project</span>
-        </div>
+        {user && (
+          <div
+            className="bg-green-500 text-white p-5 rounded-lg shadow-lg cursor-pointer flex justify-center items-center hover:bg-green-600 transition"
+            onClick={async () => {
+              const newProject = { name: `Project ${projects.length + 1}`, tasks: [], userId: user.uid };
+              const docRef = await addDoc(collection(db, "projects"), newProject);
+              setProjects([...projects, { id: docRef.id, ...newProject }]);
+            }}
+          >
+            <span className="text-xl font-semibold">+ Add Project</span>
+          </div>
+        )}
       </div>
 
       {/* Selected Project Section */}
       {selectedProject && (
-        <div
-          className={`mt-8 p-6 rounded-lg shadow-lg ${
-            theme === "retro" ? "bg-gray-100 border-2 border-black font-retro" : theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
-          }`}
-        >
+        <div className={`mt-8 p-6 rounded-lg shadow-lg`}>
           <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
           <div className="mt-4">
             {selectedProject.tasks.length === 0 ? (
               <p>No tasks yet.</p>
             ) : (
               selectedProject.tasks.map((task, index) => (
-                <div key={index} className={`p-4 my-2 rounded transition-all ${theme === "retro" ? "border-2 border-black" : ""}`}>
+                <div key={index} className={`p-4 my-2 rounded transition-all`}>
                   <h3 className="text-lg font-semibold">{task.name}</h3>
                   <input
                     type="range"
@@ -135,23 +153,14 @@ const App = () => {
                     max="100"
                     value={task.progress}
                     className="w-full mt-2"
-                    onChange={(e) => {
-                      let updatedTasks = selectedProject.tasks.map((t, i) =>
-                        i === index ? { ...t, progress: parseInt(e.target.value) } : t
-                      );
-                      let updatedProject = { ...selectedProject, tasks: updatedTasks };
-                      setProjects(projects.map((p) => (p.name === selectedProject.name ? updatedProject : p)));
-                      setSelectedProject(updatedProject);
-                    }}
+                    onChange={(e) => updateTaskNotes(selectedProject.id, index, parseInt(e.target.value))}
                   />
                   <p className="text-sm">{task.progress}% Complete</p>
-
-                  {/* Notes Section */}
                   <textarea
                     className="w-full mt-2 p-2 border rounded"
                     placeholder="Add notes for this task..."
                     value={task.notes}
-                    onChange={(e) => updateTaskNotes(index, e.target.value)}
+                    onChange={(e) => updateTaskNotes(selectedProject.id, index, e.target.value)}
                   ></textarea>
                 </div>
               ))
