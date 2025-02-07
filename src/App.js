@@ -148,6 +148,49 @@ const App = () => {
     }
   };
 
+  // Edit Project Name
+  const handleEditProjectName = async (projectId, newName) => {
+    if (!user) return;
+
+    try {
+      const projectRef = doc(db, "projects", projectId);
+      await updateDoc(projectRef, { name: newName });
+
+      setProjects(prevProjects =>
+        prevProjects.map(p => (p.id === projectId ? { ...p, name: newName } : p))
+      );
+    } catch (error) {
+      console.error("Error updating project name:", error);
+    }
+  };
+
+  // Add a new task inside the selected project
+  const handleAddTask = async () => {
+    if (!selectedProject) return;
+
+    const newTask = {
+      name: `Task ${selectedProject.tasks.length + 1}`,
+      progress: 0,
+      effort: 1,
+    };
+
+    try {
+      const projectRef = doc(db, "projects", selectedProject.id);
+      const updatedTasks = [...selectedProject.tasks, newTask];
+
+      await updateDoc(projectRef, { tasks: updatedTasks });
+
+      setProjects(prevProjects =>
+        prevProjects.map(p =>
+          p.id === selectedProject.id ? { ...p, tasks: updatedTasks } : p
+        )
+      );
+      setSelectedProject(prev => ({ ...prev, tasks: updatedTasks }));
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
+  };
+
   return (
     <div className={`min-h-screen p-10 transition-all ${theme === "dark" ? "bg-gray-900 text-white" : theme === "retro" ? "bg-gray-300 text-black font-retro" : "bg-gray-100 text-black"}`}>
       {/* Theme Toggle Button */}
@@ -165,10 +208,6 @@ const App = () => {
             <button onClick={isRegistering ? handleRegister : handleEmailLogin} className="bg-blue-500 text-white px-4 py-2 rounded mt-2 w-full">
               {isRegistering ? "Register" : "Login"}
             </button>
-            <hr className="my-3" />
-            <button onClick={handleGoogleLogin} className="bg-red-500 text-white px-4 py-2 rounded w-full">
-              Sign in with Google
-            </button>
           </div>
         </div>
       ) : (
@@ -179,9 +218,7 @@ const App = () => {
           </button>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {projects.map((project, index) => (
-              <div key={index} className="p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition" onClick={() => setSelectedProject(project)}>
-                <h2 className="text-xl font-semibold">{project.name}</h2>
-              </div>
+              <input key={index} type="text" className="text-xl font-semibold border-none bg-transparent w-full focus:outline-none" value={project.name} onChange={(e) => handleEditProjectName(project.id, e.target.value)} />
             ))}
           </div>
         </div>
