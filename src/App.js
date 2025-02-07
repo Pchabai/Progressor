@@ -73,9 +73,15 @@ const App = () => {
   // Fetch projects for the logged-in user
   const fetchProjects = async (userId) => {
     try {
+      console.log("Fetching projects...");
       const querySnapshot = await getDocs(query(collection(db, "projects"), where("userId", "==", userId)));
-      const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProjects(projectsList);
+      if (!querySnapshot.empty) {
+        const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setProjects(projectsList);
+      } else {
+        console.log("No projects found.");
+        setProjects([]); // Ensure UI updates even when no projects exist
+      }
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
@@ -139,10 +145,11 @@ const App = () => {
     };
 
     try {
-      console.log("Adding project..."); // Debugging
+      console.log("Adding project...");
       const docRef = await addDoc(collection(db, "projects"), newProject);
-      console.log("Project added with ID:", docRef.id); // Debugging
-      setProjects(prevProjects => [...prevProjects, { id: docRef.id, ...newProject }]);
+      console.log("Project added with ID:", docRef.id);
+      const addedProject = { id: docRef.id, ...newProject };
+      setProjects(prevProjects => [...prevProjects, addedProject]);
     } catch (error) {
       console.error("Error adding project:", error);
     }
@@ -204,15 +211,9 @@ const App = () => {
       ) : (
         <div>
           <h1 className="text-3xl font-bold text-center mb-6">Progressor Dashboard</h1>
-          {selectedProject ? (
-            <button className="bg-blue-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddTask}>
-              + Add Task
-            </button>
-          ) : (
-            <button className="bg-green-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddProject}>
-              + Add Project
-            </button>
-          )}
+          <button className="bg-green-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddProject}>
+            + Add Project
+          </button>
         </div>
       )}
     </div>
