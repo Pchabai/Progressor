@@ -72,13 +72,21 @@ const App = () => {
 
   // Fetch projects for the logged-in user
   const fetchProjects = async (userId) => {
+    if (!userId) {
+      console.error("Error: userId is undefined.");
+      return;
+    }
+
     try {
       console.log("Fetching projects...");
-      const querySnapshot = await getDocs(query(collection(db, "projects"), where("userId", "==", userId)));
+      const projectsCollection = collection(db, "projects");
+      const userQuery = query(projectsCollection, where("userId", "==", userId));
+      const querySnapshot = await getDocs(userQuery);
 
       if (!querySnapshot.empty) {
         const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setProjects(projectsList);
+        console.log("Projects fetched:", projectsList);
       } else {
         console.log("No projects found.");
         setProjects([]); // Ensure UI updates even when no projects exist
@@ -156,33 +164,6 @@ const App = () => {
     }
   };
 
-  // Add a new task inside the selected project
-  const handleAddTask = async () => {
-    if (!selectedProject) return;
-
-    const newTask = {
-      name: `Task ${selectedProject.tasks.length + 1}`,
-      progress: 0,
-      effort: 1,
-    };
-
-    try {
-      const projectRef = doc(db, "projects", selectedProject.id);
-      const updatedTasks = [...(selectedProject.tasks || []), newTask];
-
-      await updateDoc(projectRef, { tasks: updatedTasks });
-
-      setProjects(prevProjects =>
-        prevProjects.map(p =>
-          p.id === selectedProject.id ? { ...p, tasks: updatedTasks } : p
-        )
-      );
-      setSelectedProject(prev => ({ ...prev, tasks: updatedTasks }));
-    } catch (error) {
-      console.error("Error adding task:", error);
-    }
-  };
-
   return (
     <div className={`min-h-screen p-10 transition-all ${theme === "dark" ? "bg-gray-900 text-white" : theme === "retro" ? "bg-gray-300 text-black font-retro" : "bg-gray-100 text-black"}`}>
       {/* Theme Toggle Button */}
@@ -215,6 +196,13 @@ const App = () => {
           <button className="bg-green-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddProject}>
             + Add Project
           </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {projects.map((project, index) => (
+              <div key={index} className="p-5 bg-white shadow-md rounded-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105">
+                <h2 className="text-xl font-semibold">{project.name}</h2>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
