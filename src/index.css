@@ -37,3 +37,6 @@ body {
 .animate-pulse {
   animation: pulseEffect 1s ease-in-out 2;
 }
+.font-retro {
+  font-family: "Press Start 2P", cursive;
+}
