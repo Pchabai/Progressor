@@ -7,14 +7,14 @@ const App = () => {
   ]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [theme, setTheme] = useState("light"); // Options: "light", "dark", "retro"
 
-  // Toggle dark mode
+  // Toggle between themes
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : prevTheme === "dark" ? "retro" : "light"));
   };
 
-  // Calculate project progress based on weighted tasks
+  // Calculate project progress
   const calculateProjectProgress = (tasks) => {
     if (!tasks.length) return 0;
     const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
@@ -36,13 +36,25 @@ const App = () => {
   };
 
   return (
-    <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-black"} min-h-screen p-10 transition-all`}>
+    <div
+      className={`min-h-screen p-10 transition-all ${
+        theme === "dark"
+          ? "bg-gray-900 text-white"
+          : theme === "retro"
+          ? "bg-gray-300 text-black font-retro"
+          : "bg-gray-100 text-black"
+      }`}
+    >
       {/* Theme Toggle Button */}
       <button
-        className="absolute top-4 right-4 bg-gray-800 text-white dark:bg-gray-200 dark:text-black py-2 px-4 rounded"
+        className={`absolute top-4 right-4 py-2 px-4 rounded ${
+          theme === "retro"
+            ? "bg-gray-700 text-white border-2 border-black"
+            : "bg-gray-800 text-white dark:bg-gray-200 dark:text-black"
+        }`}
         onClick={toggleTheme}
       >
-        {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+        {theme === "light" ? "🌙 Dark Mode" : theme === "dark" ? "🖥️ Retro Mode" : "☀️ Light Mode"}
       </button>
 
       <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
@@ -54,7 +66,13 @@ const App = () => {
             key={index}
             className={`p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition duration-300 transform hover:scale-105 ${
               calculateProjectProgress(project.tasks) === 100 ? "animate-pulse" : ""
-            } ${darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}`}
+            } ${
+              theme === "retro"
+                ? "bg-gray-100 border-2 border-black text-black shadow-md font-retro"
+                : theme === "dark"
+                ? "bg-gray-800 text-white"
+                : "bg-white text-black"
+            }`}
             onClick={() => setSelectedProject(project)}
           >
             <h2 className="text-xl font-semibold">{project.name}</h2>
@@ -82,14 +100,18 @@ const App = () => {
 
       {/* Selected Project Section */}
       {selectedProject && (
-        <div className={`mt-8 p-6 rounded-lg shadow-lg ${darkMode ? "bg-gray-800 text-white" : "bg-white text-black"}`}>
+        <div
+          className={`mt-8 p-6 rounded-lg shadow-lg ${
+            theme === "retro" ? "bg-gray-100 border-2 border-black font-retro" : theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
+          }`}
+        >
           <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
           <div className="mt-4">
             {selectedProject.tasks.length === 0 ? (
               <p>No tasks yet.</p>
             ) : (
               selectedProject.tasks.map((task, index) => (
-                <div key={index} className={`p-4 my-2 rounded transition-all ${darkMode ? "bg-gray-700" : "bg-gray-100"}`}>
+                <div key={index} className={`p-4 my-2 rounded transition-all ${theme === "retro" ? "border-2 border-black" : ""}`}>
                   <h3 className="text-lg font-semibold">{task.name}</h3>
                   <input
                     type="range"
@@ -119,27 +141,6 @@ const App = () => {
               ))
             )}
           </div>
-
-          {/* Add Task Button */}
-          <button
-            onClick={() => {
-              const newTask = { name: `Task ${selectedProject.tasks.length + 1}`, progress: 0, effort: 1, notes: "" };
-              let updatedProject = { ...selectedProject, tasks: [...selectedProject.tasks, newTask] };
-              setProjects(projects.map((p) => (p.name === selectedProject.name ? updatedProject : p)));
-              setSelectedProject(updatedProject);
-            }}
-            className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
-          >
-            + Add Task
-          </button>
-
-          {/* Close Button */}
-          <button
-            className="mt-4 ml-4 bg-red-500 text-white py-2 px-4 rounded"
-            onClick={() => setSelectedProject(null)}
-          >
-            Close
-          </button>
         </div>
       )}
     </div>
