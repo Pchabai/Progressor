@@ -2,11 +2,10 @@ import React, { useState } from "react";
 
 const App = () => {
   const [projects, setProjects] = useState([
-    { name: "Project A", tasks: [{ name: "Task 1", progress: 30, effort: 5 }] },
-    { name: "Project B", tasks: [{ name: "Task 2", progress: 70, effort: 3 }] },
+    { name: "Project A", tasks: [{ name: "Task 1", progress: 30, effort: 5, notes: "" }] },
+    { name: "Project B", tasks: [{ name: "Task 2", progress: 70, effort: 3, notes: "" }] },
   ]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [editingProject, setEditingProject] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
 
   // Calculate project progress based on weighted tasks
@@ -15,14 +14,6 @@ const App = () => {
     const totalEffort = tasks.reduce((sum, task) => sum + task.effort, 0);
     const completedEffort = tasks.reduce((sum, task) => sum + (task.progress / 100) * task.effort, 0);
     return Math.round((completedEffort / totalEffort) * 100);
-  };
-
-  // Update project name
-  const updateProjectName = (index, newName) => {
-    let updatedProjects = [...projects];
-    updatedProjects[index].name = newName;
-    setProjects(updatedProjects);
-    setEditingProject(null);
   };
 
   // Update task name
@@ -39,6 +30,19 @@ const App = () => {
     setEditingTask(null);
   };
 
+  // Update task notes
+  const updateTaskNotes = (taskIndex, newNotes) => {
+    let updatedTasks = selectedProject.tasks.map((task, i) =>
+      i === taskIndex ? { ...task, notes: newNotes } : task
+    );
+    let updatedProject = { ...selectedProject, tasks: updatedTasks };
+    let updatedProjects = projects.map((p) =>
+      p.name === selectedProject.name ? updatedProject : p
+    );
+    setProjects(updatedProjects);
+    setSelectedProject(updatedProject);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-10">
       <h1 className="text-3xl font-bold text-center mb-6">Project Dashboard</h1>
@@ -53,22 +57,7 @@ const App = () => {
             }`}
             onClick={() => setSelectedProject(project)}
           >
-            {editingProject === index ? (
-              <input
-                type="text"
-                defaultValue={project.name}
-                autoFocus
-                className="w-full border p-2 rounded"
-                onBlur={(e) => updateProjectName(index, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") updateProjectName(index, e.target.value);
-                }}
-              />
-            ) : (
-              <h2 className="text-xl font-semibold" onDoubleClick={() => setEditingProject(index)}>
-                {project.name}
-              </h2>
-            )}
+            <h2 className="text-xl font-semibold">{project.name}</h2>
             <div className="w-full bg-gray-200 h-3 rounded mt-2">
               <div
                 className="bg-blue-500 h-3 rounded"
@@ -102,12 +91,7 @@ const App = () => {
               <p>No tasks yet.</p>
             ) : (
               selectedProject.tasks.map((task, index) => (
-                <div
-                  key={index}
-                  className={`bg-gray-100 p-4 my-2 rounded transition-all ${
-                    task.progress === 100 ? "animate-fade-out" : ""
-                  }`}
-                >
+                <div key={index} className="bg-gray-100 p-4 my-2 rounded transition-all">
                   {editingTask === index ? (
                     <input
                       type="text"
@@ -120,7 +104,10 @@ const App = () => {
                       }}
                     />
                   ) : (
-                    <h3 className="text-lg font-semibold" onDoubleClick={() => setEditingTask(index)}>
+                    <h3
+                      className="text-lg font-semibold"
+                      onDoubleClick={() => setEditingTask(index)}
+                    >
                       {task.name}
                     </h3>
                   )}
@@ -140,6 +127,14 @@ const App = () => {
                     }}
                   />
                   <p className="text-sm">{task.progress}% Complete</p>
+
+                  {/* Notes Section */}
+                  <textarea
+                    className="w-full mt-2 p-2 border rounded"
+                    placeholder="Add notes for this task..."
+                    value={task.notes}
+                    onChange={(e) => updateTaskNotes(index, e.target.value)}
+                  ></textarea>
                 </div>
               ))
             )}
@@ -148,7 +143,7 @@ const App = () => {
           {/* Add Task Button */}
           <button
             onClick={() => {
-              const newTask = { name: `Task ${selectedProject.tasks.length + 1}`, progress: 0, effort: 1 };
+              const newTask = { name: `Task ${selectedProject.tasks.length + 1}`, progress: 0, effort: 1, notes: "" };
               let updatedProject = { ...selectedProject, tasks: [...selectedProject.tasks, newTask] };
               setProjects(projects.map((p) => (p.name === selectedProject.name ? updatedProject : p)));
               setSelectedProject(updatedProject);
