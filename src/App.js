@@ -42,17 +42,25 @@ const App = () => {
 
     enablePersistence();
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      
-      if (currentUser) {
-        fetchProjects(currentUser.uid);
+    const fetchUserSettings = async (currentUser) => {
+      if (!currentUser) return;
 
-        // Load user settings from Firestore
+      fetchProjects(currentUser.uid);
+
+      try {
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (userDoc.exists()) {
           setTheme(userDoc.data().theme || "light");
         }
+      } catch (error) {
+        console.error("Error fetching user settings:", error);
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchUserSettings(currentUser);
       } else {
         setProjects([]);
         setTheme("light"); // Reset theme if no user is logged in
@@ -64,12 +72,16 @@ const App = () => {
 
   // Fetch projects for the logged-in user
   const fetchProjects = async (userId) => {
-    const querySnapshot = await getDocs(query(collection(db, "projects"), where("userId", "==", userId)));
-    const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setProjects(projectsList);
+    try {
+      const querySnapshot = await getDocs(query(collection(db, "projects"), where("userId", "==", userId)));
+      const projectsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProjects(projectsList);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
   };
 
-  // Email/Password Authentication
+  // Email & Password Authentication
   const handleRegister = async () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
@@ -107,78 +119,39 @@ const App = () => {
       await signOut(auth);
       setUser(null);
       setProjects([]);
+      setTheme("light");
     } catch (error) {
       console.error("Logout Error:", error);
     }
   };
 
-  // Toggle Theme
-  const toggleTheme = async () => {
-    if (!user) return; // Ensure a user is logged in
-    
-    const newTheme = theme === "light" ? "dark" : theme === "dark" ? "retro" : "light";
-    setTheme(newTheme);
-  
-    try {
-      await setDoc(doc(db, "users", user.uid), { theme: newTheme }, { merge: true });
-    } catch (error) {
-      console.error("Error saving theme preference:", error);
-    }
-  };
-
   // Add a new project
   const handleAddProject = async () => {
-  if (!user) {
-    alert("You must be logged in to create a project!");
-    return;
-  }
+    if (!user) {
+      alert("You must be logged in to create a project!");
+      return;
+    }
 
-  const newProject = {
-    name: `Project ${projects.length + 1}`,
-    tasks: [],
-    userId: user.uid, // ✅ Ensure userId is stored
-  };
-
-  try {
-    console.log("Adding project..."); // Debugging
-    const docRef = await addDoc(collection(db, "projects"), newProject);
-    console.log("Project added with ID:", docRef.id); // Debugging
-    setProjects(prevProjects => [...prevProjects, { id: docRef.id, ...newProject }]);
-  } catch (error) {
-    console.error("Error adding project:", error);
-  }
-};
-
-    const docRef = await addDoc(collection(db, "projects"), newProject);
-    setProjects([...projects, { id: docRef.id, ...newProject }]);
-  };
-
-  // Add a new task inside the selected project
-  const handleAddTask = async () => {
-    if (!selectedProject) return;
-
-    const newTask = {
-      name: `Task ${selectedProject.tasks.length + 1}`,
-      progress: 0,
-      effort: 1,
+    const newProject = {
+      name: `Project ${projects.length + 1}`,
+      tasks: [],
+      userId: user.uid,
     };
 
-    const projectRef = doc(db, "projects", selectedProject.id);
-    const updatedTasks = [...selectedProject.tasks, newTask];
-    
-    await updateDoc(projectRef, { tasks: updatedTasks });
-
-    const updatedProjects = projects.map((p) =>
-      p.id === selectedProject.id ? { ...p, tasks: updatedTasks } : p
-    );
-    setProjects(updatedProjects);
-    setSelectedProject({ ...selectedProject, tasks: updatedTasks });
+    try {
+      console.log("Adding project..."); // Debugging
+      const docRef = await addDoc(collection(db, "projects"), newProject);
+      console.log("Project added with ID:", docRef.id); // Debugging
+      setProjects(prevProjects => [...prevProjects, { id: docRef.id, ...newProject }]);
+    } catch (error) {
+      console.error("Error adding project:", error);
+    }
   };
 
   return (
     <div className={`min-h-screen p-10 transition-all ${theme === "dark" ? "bg-gray-900 text-white" : theme === "retro" ? "bg-gray-300 text-black font-retro" : "bg-gray-100 text-black"}`}>
       {/* Theme Toggle Button */}
-      <button className="absolute top-4 right-4 p-2 rounded transition" onClick={toggleTheme}>
+      <button className="absolute top-4 right-4 p-2 rounded transition" onClick={() => setTheme(theme === "light" ? "dark" : theme === "dark" ? "retro" : "light")}>
         {theme === "light" ? "🌙 Dark Mode" : theme === "dark" ? "🖥️ Retro Mode" : "☀️ Light Mode"}
       </button>
 
@@ -187,21 +160,13 @@ const App = () => {
         <div className="flex justify-center items-center min-h-screen">
           <div className="bg-white p-6 shadow-md rounded text-center w-80">
             <h2 className="text-lg font-bold">{isRegistering ? "Register" : "Login"}</h2>
-
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="border p-2 rounded w-full mt-2"/>
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="border p-2 rounded w-full mt-2"/>
-
-            <button onClick={isRegistering ? handleRegister : handleEmailLogin}
-              className="bg-blue-500 text-white px-4 py-2 rounded mt-2 w-full">
+            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="border p-2 rounded w-full mt-2"/>
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="border p-2 rounded w-full mt-2"/>
+            <button onClick={isRegistering ? handleRegister : handleEmailLogin} className="bg-blue-500 text-white px-4 py-2 rounded mt-2 w-full">
               {isRegistering ? "Register" : "Login"}
             </button>
-
             <hr className="my-3" />
-            
-            <button onClick={handleGoogleLogin}
-              className="bg-red-500 text-white px-4 py-2 rounded w-full">
+            <button onClick={handleGoogleLogin} className="bg-red-500 text-white px-4 py-2 rounded w-full">
               Sign in with Google
             </button>
           </div>
@@ -212,11 +177,9 @@ const App = () => {
           <button className="bg-green-500 text-white px-4 py-2 rounded mb-4" onClick={handleAddProject}>
             + Add Project
           </button>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {projects.map((project, index) => (
-              <div key={index} className="p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition"
-                onClick={() => setSelectedProject(project)}>
+              <div key={index} className="p-5 rounded-lg shadow-lg cursor-pointer hover:shadow-xl transition" onClick={() => setSelectedProject(project)}>
                 <h2 className="text-xl font-semibold">{project.name}</h2>
               </div>
             ))}
